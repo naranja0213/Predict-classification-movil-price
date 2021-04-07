@@ -1,0 +1,383 @@
+---
+title: "Yuheng He-mobileprice"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
+
+#pregunta1: a ver cuales factores tienen correlacion con el precio?
+#pregunta2: en nuestro caso,si podemos buscar un modelo mejor para predicir el precio el el dataset-test?
+#pregunta3 para personal: A través de la regresión logística se obtienen las variables factoriales que inciden en los precios de la telefonía móvil,se analisis cuales los factores variables es mas importante?
+ 
+
+## R Markdown
+
+```{r}
+library(tibble)
+library(tidyverse)
+```
+
+#paso 1 import data
+
+```{r}
+library(readr)
+getwd()
+mobileprice<-read_csv("./train.csv")
+mobileprice_test<-read_csv("./test.csv")
+```
+
+
+
+```{r}
+library(tidyr)
+library(gapminder)
+library(dplyr)
+library(ggpubr)
+library(ggplot2)
+library(formattable)
+```
+
+#paso 2 tratamiento datos
+
+#Ver la estructura de datos, verificar valores perdidos 
+```{r}
+str(mobileprice)
+knitr::kable(mobileprice)
+summary(mobileprice)
+
+```
+
+```{r}
+head(mobileprice)
+
+```
+
+
+# /Cambiar price_range a factor y orderlo.
+
+```{r}
+data<-mobileprice
+str(data)
+data$price_range<-as.ordered(data$price_range)
+data$price_range<-as.factor(data$price_range)
+summary(data)
+
+xtabs(~four_g+price_range,data)
+```
+
+
+```{r}
+library(formattable)
+
+formattable(data)
+
+```
+
+
+#paso 3. Partition data 
+
+```{r}
+ind1 <- sample(2, nrow(data), replace = TRUE, prob = c(0.8,0.2))
+train1 <- data[ind1==1,]
+test2 <- data[ind1==2,]
+
+```
+
+
+#paso 4. EDA,Explor data analysis
+# density of Fc
+```{r}
+ggplot(data, aes(x=fc)) + 
+    geom_histogram(aes(y=..density..),      
+                   binwidth=.5,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666")
+
+```
+#deferente factores con el precio 
+
+```{r}
+ggplot(data,aes(x=price_range)) + geom_bar(aes(fill=factor(touch_screen)),position="dodge")
+ggplot(data,aes(x=price_range)) + geom_bar(aes(fill=factor(four_g)),position="dodge")
+ggplot(data,aes(x=price_range)) + geom_bar(aes(fill=factor(wifi)),position="dodge")
+ggplot(data,aes(x=price_range)) + geom_bar(aes(fill=factor(m_dep)),position="dodge")
+
+
+
+```
+
+#movils tienen three_g son 3 veces de los moviles que no tienen three_g,pero four_g de los moviles son mitad y mitad
+```{r}
+ggplot(data,aes(x=three_g))+geom_bar()
+ggplot(data,aes(x=four_g))+geom_bar()
+```
+
+```{r}
+ggplot(data,aes(x=fc)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+ggplot(data,aes(x=n_cores)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+
+```
+
+
+
+
+#touch_screen con el precio de movil 
+```{r}
+ggplot(data,aes(x=touch_screen)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+
+ 
+```
+
+#fc Megapíxeles de la cámara frontal y precio del teléfono móvil (cuanto más grande es la cámara frontal, más teléfonos móviles)
+```{r}
+ggplot(data,aes(x=fc)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+```
+
+#pc Megapíxeles de la cámara principal y precios del teléfono
+```{r}
+ggplot(data,aes(x=pc)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+```
+
+#talk_time con el precio
+```{r}
+ggplot(data,aes(x=talk_time)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+```
+#Si tiene dual_sim o no con el precio del movil casi igual
+```{r}
+ggplot(data,aes(x=dual_sim)) + geom_bar(aes(fill=factor(price_range)),position="dodge")
+
+```
+
+#/ Casi no hay diferencia en la cantidad de diferentes precios de teléfonos móviles en diferentes n_cores
+```{r}
+ggplot(data,aes(x=n_cores)) + geom_bar(aes(fill=factor(price_range)),position="stack")
+```
+
+
+```{r}
+ggplot(data,aes(x=int_memory)) + geom_bar(aes(fill=factor(price_range)),position="stack")
+```
+
+
+
+
+
+
+
+#clock_speed. Velocidad y precio de instrucción del microprocesador (se puede ver que la mayoría de los colores están cerca de 0, y se puede encontrar que la mayoría de los teléfonos móviles tienen una velocidad de procesamiento muy rápida)
+```{r}
+ggplot(data,aes(clock_speed)) + geom_bar(aes(fill=factor(price_range)),position="stack")
+```
+
+
+#fc/ megapixeles de la camera primaria con el precio ,Se puede ver que la mayoría de las cámaras frontales de la mayoría de los móviles están por debajo de los 10 millones
+```{r}
+ggplot(data,aes(x=fc)) + geom_bar(aes(fill=factor(price_range)),position="stack")
+```
+
+
+#sc_w(screen_width con el precio_range /los mayoría screen_width son menos 10cm 
+```{r}
+ggplot(data,aes(x=sc_w)) + geom_bar(aes(fill=factor(price_range)),position="stack")
+```
+
+
+
+
+
+
+#grafico circular
+
+#n_cores con el price_range
+```{r}
+
+ggplot(data, aes(n_cores))+geom_bar()+coord_polar(theta = "y")
+ggplot(data, aes(n_cores))+geom_bar()+coord_polar(theta = "x")
+ggplot(data, aes(n_cores))+geom_bar(aes(fill=price_range))+coord_polar(theta = "y")
+ggplot(data, aes(n_cores))+geom_bar(aes(fill=price_range))+coord_polar(theta = "x")
+
+```
+
+
+
+
+#la memoria con el precio 
+```{r}
+
+ggplot(data, aes(int_memory))+geom_bar()+coord_polar(theta = "y")
+ggplot(data, aes(int_memory))+geom_bar()+coord_polar(theta = "x")
+ggplot(data, aes(int_memory))+geom_bar(aes(fill=price_range))+coord_polar(theta = "y")
+ggplot(data, aes(int_memory))+geom_bar(aes(fill=price_range))+coord_polar(theta = "x")
+
+```
+
+#sc_h con el precio
+
+```{r}
+
+ggplot(data, aes(sc_h))+geom_bar()+coord_polar(theta = "y")
+ggplot(data, aes(sc_h))+geom_bar()+coord_polar(theta = "x")
+ggplot(data, aes(m_dep))+geom_bar(aes(fill=price_range))+coord_polar(theta = "y")
+ggplot(data, aes(m_dep))+geom_bar(aes(fill=price_range))+coord_polar(theta = "x")
+
+```
+
+
+
+#clock_speed con price_range
+```{r}
+
+ggplot(data, aes(clock_speed))+geom_bar()+coord_polar(theta = "y")
+ggplot(data, aes(clock_speed))+geom_bar()+coord_polar(theta = "x")
+ggplot(data, aes(clock_speed))+geom_bar(aes(fill=price_range))+coord_polar(theta = "y")
+ggplot(data, aes(clock_speed))+geom_bar(aes(fill=price_range))+coord_polar(theta = "x")
+
+
+```
+
+
+#talk_time con price_range
+```{r}
+
+ggplot(data, aes(blue))+geom_bar()+coord_polar(theta = "y")
+ggplot(data, aes(blue))+geom_bar()+coord_polar(theta = "x")
+ggplot(data, aes(blue))+geom_bar(aes(fill=price_range))+coord_polar(theta = "y")
+ggplot(data, aes(blue))+geom_bar(aes(fill=price_range))+coord_polar(theta = "x")
+
+
+```
+
+
+
+#3. Ordinal Logitic Regression or Proportional Odds Logistic Regression
+```{r}
+library(MASS)
+model <- polr(price_range~ battery_power+blue+clock_speed+dual_sim+fc+four_g+int_memory+m_dep+mobile_wt+n_cores+pc+px_width+ram+sc_h+sc_w+talk_time+three_g+touch_screen+wifi, data, Hess = TRUE)
+
+summary(model)
+```
+
+
+#P-value /.caculate P value
+
+```{r}
+
+(ctable<-coef(summary(model)))
+p<-pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+(ctable<-cbind(ctable,"p value"= p))
+```
+
+
+# 5. Prediction
+```{r}
+pred <- predict(model, train1)
+print(pred, digits = 3)
+
+```
+
+
+#6. optimizacion del modelo /Optimización del modelo, el modelo óptimo es restar factores que no son relevantes
+#battery_poewr/m_dep/mobile_wt/px_width/ram/sc_h , aqui sc_h variable p-value >0.05,no significacion, entonces quitamos variable "sc_h"
+```{r}
+library(MASS)
+model2 <- polr(price_range~ .-px_height-blue-clock_speed-dual_sim-fc-four_g-int_memory-n_cores-pc-sc_w-talk_time-three_g-touch_screen-wifi, data, Hess = TRUE)
+
+summary(model)
+(ctable<-coef(summary(model2)))
+p<-pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+(ctable<-cbind(ctable,"p value"= p))
+```
+
+
+#model para quita variable "sc_h"
+
+
+```{r}
+library(MASS)
+model3 <- polr(price_range~ .-px_height-blue-clock_speed-dual_sim-fc-four_g-int_memory-n_cores-pc-sc_w-talk_time-three_g-touch_screen-wifi-sc_h, data, Hess = TRUE)
+
+summary(model)
+(ctable<-coef(summary(model3)))
+p<-pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+(ctable<-cbind(ctable,"p value"= p))
+```
+
+
+
+# predict
+```{r}
+pred <- predict(model3, train1)
+print(pred, digits = 3)
+
+```
+
+
+
+
+# 7. Confusion Matrix & Error for Training data 
+
+```{r}
+(tab <- table(pred,train1$price_range))
+1-sum(diag(tab))/sum(tab)
+
+```
+
+# 8. Confusion Matrix & Error for Testing data 
+```{r}
+
+pred1 <- predict(model3,test2)
+(tab1 <- table(pred1, test2$price_range))
+1-sum(diag(tab1))/sum(tab1)
+
+```
+
+
+#Para la primera pregunta :Al optimizar el modelo, podemos derivar diferentes factores de influencia que afectan la clasificación de precios de los teléfonos móviles.:Battery_power,m_dep, mobile_wt,px_width y Ram.
+
+
+
+#para la segunda pregunta:A traves de lo prediccion modelo mejor,podemos predecir el precio del movil en el dataset Test.
+
+#9. predict mobileprice_test (utlizamos modelo mojor para probar Dataset_test,podemos saber las posiblidades del precio de movil)
+```{r}
+pred2<-predict(model3,mobileprice_test ,type="prob")
+print(pred2,digits=3)
+head(pred2)
+```
+
+
+#10. Para la pregunta3 personal : A través de la regresión logística se obtienen las variables factoriales que inciden en los precios de la telefonía móvil, se analiza en mayor profundidad la relación de prioridad entre las variables y se analizan los valores críticos específicos que inciden en la clasificación de precios de la telefonía móvil.
+
+#descion tree 
+#Al dividir los indicadores por los nodos del árbol de decisión, se puede juzgar el orden importante de las variables que afectan el precio de los teléfonos móviles: Ram>battery_power>px_width
+#y Cuando Ram >2236,es el primero Node para devidir, cuando ram > 2236 y ram>3014, este tipo de movil va a classficarse a Price_range 3. A traves de el descion tree,podemos saber los específicos que afectan la clasificación de precios de los teléfonos móviles.
+
+
+```{r}
+library(rpart)
+library(rpart.plot)
+desicion_tree <- rpart(price_range ~., data = data, method = 'class')
+rpart.plot(desicion_tree, extra = 106)
+
+
+```
+
+
+
+
+
+
+
+
+
